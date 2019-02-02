@@ -9,7 +9,6 @@ void delay(volatile int d)
 //#define GPFDAT (*((volatile unsigned int *)0x56000054))
 /*main 函数不是必需的*/
 int main(void)
-/*which 表示点亮那一盏灯*/
 {
 	int val1,val2; /*val: 0b000-0b111*/
 	int tmp;

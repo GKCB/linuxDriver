@@ -1,0 +1,5 @@
+1.编译生成hello.ko:输入make命令
+2.hello.ko 放入对应的系统文件夹内
+3.生成新的系统文件first_fs.yaffs2
+4.烧写系统文件first_fs.yaffs2
+5.点亮板子之后加载模块hello.ko

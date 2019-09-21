@@ -1,0 +1,146 @@
+{
+	// Place your snippets for c here. Each snippet is defined under a snippet name and has a prefix, body and 
+	// description. The prefix is what is used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. Placeholders with the 
+	// same ids are connected.
+	// Example:
+	// "Print to console": {
+	// 	"prefix": "log",
+	// 	"body": [
+	// 		"console.log('$1');",
+	// 		"$2"
+	// 	],
+	// 	"description": "Log output to console"
+	// }
+	"set driver_module": {  // 片段名称 driver_module
+        "prefix": "driver",  // 输入driver触发联想提升
+		"body": [  // 确认后添加的代码
+
+			"#include <linux/module.h>",
+			"#include <linux/kernel.h>",
+			"#include <linux/fs.h>",
+			"#include <linux/init.h>",
+			"#include <linux/delay.h>",
+			"#include <asm/uaccess.h>",
+			"#include <asm/irq.h>",
+			"#include <asm/io.h>",
+			"#include <asm/arch/regs-gpio.h>",
+			"#include <asm/hardware.h>",
+			"",
+			"//File    :   $TM_FILENAME",
+			"//Time    :   $CURRENT_YEAR/$CURRENT_MONTH/$CURRENT_DATE", 
+			"//Author  :   CHENG Bo ",
+			"//Version :   1.0",
+			"//Github  :   https://github.com/GKCB",                    
+			"//Desc    :   None",                                       
+			"//Chip    :   ${1:Chip}",                                        
+			"//Module  :   ${2:Module}",                                        
+			
+			"",
+			"import driver_function",
+			"$0",
+			"",
+            "static int __init $1_$2_init(void) ",
+			"{                         ",
+			"	//1. set file_operation",
+			"	import set_register_chrdev",
+            "    return 0;             ",
+            "}                         ",
+            "",
+            "static void __exit $1_$2_exit(void)",
+			"{                         ",
+			"	import set_unregister_chrdev",
+            "}                         ",
+            "module_init($1_$2_init);",
+			"module_exit($1_$2_exit);",
+			"",
+			"MODULE_LICENSE(\"GPL\");" 
+			// $0代表光标最后停留的位置 "$0" 
+        ],
+        "description": "set_driver_module"  // 提示的内容
+	}
+
+	"set driver_function": {  // 片段名称 drivfun
+        "prefix": "driver_function",  
+		"body": [  // 确认后添加的代码
+			"//fileOp    :   ${1:xxx}",
+			"static int $1_drv_open(struct inode *inode, struct file *file)",
+			"{",
+			"	//set regs",
+			"	return 0;",
+			"}",
+			"",
+			"static ssize_t $1_drv_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)",
+			"{",
+			"	return 1;",
+			"}",			
+			"",	
+			"static ssize_t $1_drv_write(struct file *file, const char __user *buf, size_t count, loff_t * ppos)",
+			"{",
+			"	int val;",
+			"	copy_from_user(&val, buf, count);",
+			"	//set regs",
+			"	return 0;",
+			"}",			
+			"",					
+			"static int $1_drv_close(struct inode *inode, struct file *file)",	
+			"{",
+			"	return 0;",
+			"}",
+			"",
+			"static struct file_operations $1_drv_fops = {",
+			"	.owner   =  THIS_MODULE,",
+			"	.open    =  $1_drv_open,",
+			"	.read	 =	$1_drv_read,",
+			"	.write	 =	$1_drv_write,",
+			"	.release =  $1_drv_close,",			
+			"};"
+			""
+			
+			// $0代表光标最后停留的位置 "$0" 
+        ],
+        "description": "set_driver_function"  
+	}
+
+	/*
+	"set register_chrdev": {  // 片段名称 drivfun
+        "prefix": "set_register_chrdev",  
+		"body": [  // 确认后添加的代码			
+			""
+        ],
+        "description": "set_driver_function"  
+	}
+	*/
+	"set register_chrdev": {  // 片段名称 drivfun
+        "prefix": "set_register_chrdev",  
+		"body": [  // 确认后添加的代码	
+			"int major;"
+			"#define DEVICE_NAME     \"${1:DEVICE_NAME}\"", 					
+			"static struct class *${2:xxx}drv_class;",
+			"static struct class_device	*${2:xxx}drv_class_dev;",
+			"major = register_chrdev(0, DEVICE_NAME, &${3:xxx}_drv_fops);",
+			"${2:xxx}drv_class = class_create(THIS_MODULE, DEVICE_NAME);", //\"${1:DEVICE_NAME}\"
+			"${2:xxx}drv_class_dev = class_device_create(${2:xxx}drv_class, NULL, MKDEV(major, 0), NULL, DEVICE_NAME);",
+			"gpfcon = (volatile unsigned long *)ioremap(0x56000050, 16);",			
+			"$0",		
+			
+        ],
+        "description": "set_driver_function"  
+	}
+
+	"set unregister_chrdev": {  // 片段名称 drivfun
+        "prefix": "set_unregister_chrdev",  
+		"body": [  // 确认后添加的代码	
+			"unregister_chrdev(major, DEVICE_NAME);",                                                
+			"class_device_unregister(${2:xxx}drv_class_dev);",
+			"class_destroy(${2:xxx}drv_class);",
+			"iounmap(xxx_reg);",		
+			"$0",
+        ],
+        "description": "set_driver_function"  
+	}
+
+	
+
+	
+}

@@ -14,6 +14,7 @@
 [设备驱动中的阻塞和同步机制](#设备驱动中的阻塞和同步机制)  
 [中断与时钟机制](#中断与时钟机制)  
 [内外存访问](#内外存访问)  
+[设备驱动模型](#设备驱动模型)  
 
 ### Linux驱动开发概述  
 
@@ -779,5 +780,29 @@ wake_up
 
 ### 内外存访问  
 
+内存分配需要`kmalloc()`和`vmalloc()`函数等。  
+kmalloc函数为程序分配的是一个连续的存储空间。这个空间不会被清零。原有数据会留下。  
+```c{.line-numbers}
+static inline void *kmalloc(size_t size, gfp_t flags);
+```
+size参数：分配的内存池是固定的，都是2的整数倍。就算不足也是2的整数倍。  
+vmalloc函数分配虚拟地址连续，但是物理地址不连续的内存。vmalloc开销大于`__get_free_pages`vmalloc需要建立新的页表。  
+```c{.line-numbers}
+void *vmalloc(unsigned long size);
+void vfree(const void *addr);
+```
+[Kmalloc和Vmalloc的区别](https://blog.csdn.net/liujianfei526/article/details/77824644)  
+[虚拟内存与物理内存的联系与区别](https://blog.csdn.net/lvyibin890/article/details/82217193)  
+
+后备高速缓存：如果反复分配同一块内存块，频繁的将内存释放掉。这会导致内存碎片。需要使用内存池来处理。内存池用slab分配器来处理。  
+1. 创建slab缓存函数  
+调用`kmem_cache_create`创建slab缓存。
+
 返回: [内外存访问](#内外存访问)  
+返回: [目录](#目录)  
+
+### 设备驱动模型  
+
+
+返回: [设备驱动模型](#设备驱动模型)  
 返回: [目录](#目录)  

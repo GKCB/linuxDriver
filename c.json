@@ -15,17 +15,18 @@
 	"set driver_module": {  // 片段名称 driver_module
         "prefix": "driver",  // 输入driver触发联想提升
 		"body": [  // 确认后添加的代码
-
 			"#include <linux/module.h>",
 			"#include <linux/kernel.h>",
 			"#include <linux/fs.h>",
 			"#include <linux/init.h>",
 			"#include <linux/delay.h>",
+			"#include <linux/irq.h>",
 			"#include <asm/uaccess.h>",
 			"#include <asm/irq.h>",
 			"#include <asm/io.h>",
 			"#include <asm/arch/regs-gpio.h>",
 			"#include <asm/hardware.h>",
+			"#include <linux/poll.h>",
 			"",
 			"//File    :   $TM_FILENAME",
 			"//Time    :   $CURRENT_YEAR/$CURRENT_MONTH/$CURRENT_DATE", 
@@ -44,13 +45,13 @@
 			"{                         ",
 			"	//1. set file_operation",
 			"	import set_register_chrdev",
-            "    return 0;             ",
-            "}                         ",
+            "    return 0;",
+            "}",
             "",
             "static void __exit $1_$2_exit(void)",
 			"{                         ",
 			"	import set_unregister_chrdev",
-            "}                         ",
+            "}",
             "module_init($1_$2_init);",
 			"module_exit($1_$2_exit);",
 			"",
@@ -66,13 +67,23 @@
 			"//fileOp    :   ${1:xxx}",
 			"static int $1_drv_open(struct inode *inode, struct file *file)",
 			"{",
-			"	//set regs",
+			"	//set regs init",
+			"	//set_irq",
 			"	return 0;",
 			"}",
 			"",
 			"static ssize_t $1_drv_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)",
 			"{",
-			"	return 1;",
+			"	unsigned char val;",
+			"	//read regs",			
+			"	//analysis regs value",
+			"	//copy_to_user(buf, vals, sizeof(vals));",
+			"	//sleep if not action(irq)",
+			"static DECLARE_WAIT_QUEUE_HEAD(button_waitq);",
+			"	wait_event_interruptible(button_waitq, ev_press);"
+			"	copy_to_user(buf, &val, 1);",
+			"	ev_press = 0;static volatile int ev_press = 0;",
+			"	return 0;",
 			"}",			
 			"",	
 			"static ssize_t $1_drv_write(struct file *file, const char __user *buf, size_t count, loff_t * ppos)",
@@ -88,16 +99,30 @@
 			"	return 0;",
 			"}",
 			"",
+			"static unsigned $1_drv_poll(struct file *file, poll_table *wait)",			
+			"{",
+			"	unsigned int mask = 0;",
+			"	poll_wait(file, &button_waitq, wait);",
+			"	if (ev_press)",
+			"		mask |= POLLIN | POLLRDNORM;",
+			"	return mask;",		
+			"}",
+			"",
+			"static int $1_drv_fasync (int fd, struct file *filp, int on)",
+			"{",
+			"	return fasync_helper(fd, filp, on, &button_async);",
+			"}",
+			"",
 			"static struct file_operations $1_drv_fops = {",
 			"	.owner   =  THIS_MODULE,",
 			"	.open    =  $1_drv_open,",
 			"	.read	 =	$1_drv_read,",
 			"	.write	 =	$1_drv_write,",
-			"	.release =  $1_drv_close,",			
-			"};"
-			""
-			
-			// $0代表光标最后停留的位置 "$0" 
+			"	.release =  $1_drv_close,",	
+			"	.poll    =  $1_drv_poll,",
+			"	.fasync	 =  $1_drv_fasync,",
+			"};",			
+			"$0",
         ],
         "description": "set_driver_function"  
 	}
@@ -118,12 +143,12 @@
 			"#define DEVICE_NAME     \"${1:DEVICE_NAME}\"", 					
 			"static struct class *${2:xxx}drv_class;",
 			"static struct class_device	*${2:xxx}drv_class_dev;",
+			"volatile unsigned long *xxx_reg;",
 			"major = register_chrdev(0, DEVICE_NAME, &${3:xxx}_drv_fops);",
 			"${2:xxx}drv_class = class_create(THIS_MODULE, DEVICE_NAME);", //\"${1:DEVICE_NAME}\"
 			"${2:xxx}drv_class_dev = class_device_create(${2:xxx}drv_class, NULL, MKDEV(major, 0), NULL, DEVICE_NAME);",
-			"gpfcon = (volatile unsigned long *)ioremap(0x56000050, 16);",			
-			"$0",		
-			
+			"xxx_reg = (volatile unsigned long *)ioremap(0x00000000, 16);",			
+			"$0",
         ],
         "description": "set_driver_function"  
 	}
@@ -140,7 +165,36 @@
         "description": "set_driver_function"  
 	}
 
-	
+	"set irq": {  // 
+        "prefix": "set_irq",  
+		"body": [  // 确认后添加的代码			
+			"static const char ${2:devname}[] = \"Footbridge UART\";",
+			"struct pin_desc{",
+			"	unsigned int pin;",
+			"	unsigned int key_val;",
+			"};",
+			"struct pin_desc pins_desc[4] = {",
+			"	{S3C2410_GPF0, 0x01},",
+			"	{S3C2410_GPF2, 0x02},",
+			"	{S3C2410_GPG3, 0x03},",
+			"	{S3C2410_GPG11, 0x04},",
+			"};",
+			"",
+			"static irqreturn_t ${1:irq_function}(int irq, void *dev_id)",
+			"{",
+			"	ev_press = 1;//irq happned",
+			"	//wake up process",
+			"	wake_up_interruptible(&button_waitq);",
+			"	return IRQ_RETVAL(IRQ_HANDLED);",
+			"}",
+			"// xxx_open",
+			"request_irq(IRQ_EINT0, ${1:irq_function}, IRQT_BOTHEDGE, ${2:devname}, &pins_desc[0]);",
+			"// xxx_close",
+			"free_irq(IRQ_EINT0, &pins_desc[0]);",
+
+        ],
+        "description": ""  
+	}
 
 	
 }

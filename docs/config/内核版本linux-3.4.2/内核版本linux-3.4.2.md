@@ -1,4 +1,5 @@
 
+参照视频《毕业班第3课第1节_移植3.4.2内核之框架介绍及简单修改》  
 详细步骤：  
 1. 先确保对应的文件是全的  
 ![kernel文件](./images/kernelfiles.png)
@@ -19,7 +20,7 @@
 
 编译出错了：  
 ![编译出错](./images/makeError.png)  
-查看之后发现需要配置 arm-linux-gcc 4.4版本  
+查看之后发现需要配置 `arm-linux-gcc 4.4`版本  
 [在linux中安装arm-linux-gcc](https://blog.csdn.net/ddffyhg/article/details/88090616)  
 
 但是考虑到这里是有多个编译器的，所以需要确定一下编译器的版本：  
@@ -47,4 +48,7 @@
 2. make 内核得到u-boot.bin文件  
 
 烧录新的u-boot.bin文件，同时别忘了根文件系统  
+但是编译前需要修改：  
+
+`/arm-none-linux-gnueabi/sys-root/usr/include/linux/netfilter.h`  
 
